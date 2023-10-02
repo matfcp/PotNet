@@ -1,0 +1,47 @@
+import bpy
+import os
+from pathlib import Path
+import pickle
+
+blend_file_path = bpy.data.filepath
+
+# create a folder to store the breaks
+directory = os.path.join(os.path.dirname(blend_file_path), 'files/train')
+
+
+def fracture():
+    bpy.ops.object.add_fracture_cell_objects(
+        source_limit=60, 
+        source_noise=0.5, 
+        use_smooth_faces=False, 
+        use_sharp_edges=False, 
+        use_sharp_edges_apply=False, 
+        use_debug_redraw=False
+        )
+
+#--------------------------------------------------------------------------------
+
+for i in range(1,1801):
+    bpy.data.objects["VG"].select_set(True)  
+    fracture()
+    
+    # retriangulate sherds for safety
+    bpy.ops.object.mode_set(mode = 'EDIT')
+    bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
+    bpy.ops.object.mode_set(mode = 'OBJECT')
+    
+    # rename sherds
+    count = 1
+    for obj in bpy.context.selected_objects:
+            obj.name = 'frac_{}'.format(count)
+            count += 1
+    
+    #CenterOrigin()
+    
+    # create subfolders to save the sherds from a same break
+    os.mkdir(os.path.join(directory, 'file{}'.format(i)))
+    target_file = os.path.join(directory, 'file{}/file{}_'.format(i, i))
+    bpy.ops.export_mesh.stl(filepath=target_file, use_selection=True, batch_mode='OBJECT', axis_forward='-Z', axis_up='Y')
+    
+    # delete the sherds before starting over
+    bpy.ops.object.delete()
